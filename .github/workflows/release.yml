@@ -1,7 +1,8 @@
 name: Release
 
 # Push a tag like v0.1.0 to build and publish both packages to PyPI.
-# Requires a PyPI "trusted publisher" for this repository and workflow (see RELEASING.md).
+# Requires a PyPI trusted publisher per package: agentpanel -> environment "pypi",
+# api-shakedown -> environment "pypi-api-shakedown" (see RELEASING.md).
 on:
   push:
     tags: ["v*"]
@@ -25,10 +26,16 @@ jobs:
           ls dist | grep -q "api_shakedown-${tag}-" || { echo "api-shakedown is not $tag"; exit 1; }
       - uses: actions/upload-artifact@v4
         with:
-          name: dist
-          path: dist/
+          name: dist-agentpanel
+          path: dist/agentpanel-*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist-api-shakedown
+          path: dist/api_shakedown-*
 
-  publish:
+  # One job and environment per package: PyPI's trusted publishing ties each project to
+  # (repository, workflow, environment), and agentpanel must exist before api-shakedown.
+  publish-agentpanel:
     needs: build
     runs-on: ubuntu-latest
     environment: pypi
@@ -37,7 +44,20 @@ jobs:
     steps:
       - uses: actions/download-artifact@v8
         with:
-          name: dist
+          name: dist-agentpanel
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
+
+  publish-api-shakedown:
+    needs: publish-agentpanel
+    runs-on: ubuntu-latest
+    environment: pypi-api-shakedown
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist-api-shakedown
           path: dist/
       - uses: pypa/gh-action-pypi-publish@release/v1
 

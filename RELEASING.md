@@ -31,9 +31,17 @@ shakedown run examples/petstore.yaml --out /tmp/harness --offline
 
 Either upload by hand (`twine upload dist/*`), or let CI do it:
 
-1. One-time: on PyPI, add a *trusted publisher* for each project (`agentpanel`,
-   `api-shakedown`) pointing at this GitHub repository, workflow `release.yml`,
-   environment `pypi`. For a brand-new project use a "pending publisher".
+1. One-time: on PyPI, add a *trusted publisher* for each project pointing at this GitHub
+   repository and workflow `release.yml`, each with its own environment (PyPI allows
+   only one pending project per repository + workflow + environment):
+
+   | PyPI project | Environment |
+   |---|---|
+   | `agentpanel` | `pypi` |
+   | `api-shakedown` | `pypi-api-shakedown` |
+
+   For a brand-new project use a "pending publisher". Create both environments in the
+   GitHub repository under Settings > Environments.
 2. Tag and push: `git tag v0.1.0 && git push origin v0.1.0`.
 
 The workflow fails if the tag does not match both package versions. A version can
