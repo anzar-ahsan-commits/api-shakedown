@@ -1,0 +1,22 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# secrets: never commit real keys
+.env
+
+# generated harnesses
+shakedown-output/
+
+.idea/
+.vscode/
+.DS_Store

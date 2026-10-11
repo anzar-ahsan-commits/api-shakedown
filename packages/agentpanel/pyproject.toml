@@ -1,0 +1,49 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "agentpanel"
+dynamic = ["version"]
+description = "Domain-agnostic multi-agent orchestration core (LangGraph) with pluggable local/cloud LLM providers."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Anzar Ahsan" }]
+keywords = ["llm", "agents", "multi-agent", "langgraph", "ollama", "structured-output"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Typing :: Typed",
+]
+dependencies = [
+    "langgraph>=1.0",
+    "langchain-core>=1.0",
+    "langchain-ollama>=1.0",   # Ollama is the default provider, so it is not optional
+    "pydantic>=2.7",
+    "pydantic-settings>=2.4",
+    "httpx>=0.27",
+]
+
+[project.urls]
+Homepage = "https://github.com/anzar-ahsan-commits/api-shakedown/tree/main/packages/agentpanel"
+Source = "https://github.com/anzar-ahsan-commits/api-shakedown"
+Issues = "https://github.com/anzar-ahsan-commits/api-shakedown/issues"
+
+[project.optional-dependencies]
+openai = ["langchain-openai>=1.0"]
+anthropic = ["langchain-anthropic>=1.0"]
+cloud = ["agentpanel[openai,anthropic]"]
+
+[tool.hatch.version]
+path = "src/agentpanel/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/agentpanel"]

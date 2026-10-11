@@ -1,0 +1,37 @@
+name: Bug report
+description: Something did not work as expected
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: What you ran, what happened, and what you expected.
+      placeholder: |
+        shakedown run openapi.yaml --out harness
+        ...
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `shakedown version`
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: Provider and model
+      description: Output of `shakedown doctor`, or "offline"
+  - type: textarea
+    id: spec
+    attributes:
+      label: Spec
+      description: The spec, or the smallest part of it that reproduces the problem. Remove anything private.
+      render: yaml
+  - type: textarea
+    id: output
+    attributes:
+      label: Output or traceback
+      render: text

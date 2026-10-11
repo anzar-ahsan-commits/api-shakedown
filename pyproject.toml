@@ -1,0 +1,92 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "api-shakedown"
+dynamic = ["version"]
+description = "Multi-agent generator of WireMock stubs, contract tests, and chaos scenarios from an OpenAPI spec."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Anzar Ahsan" }]
+keywords = ["openapi", "wiremock", "contract-testing", "chaos-engineering", "llm", "langgraph", "mcp"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Testing",
+    "Typing :: Typed",
+]
+dependencies = [
+    "agentpanel>=0.1.0,<0.2",
+    "typer>=0.12",
+    "pyyaml>=6.0",
+    "httpx>=0.27",
+    "openapi-spec-validator>=0.7",
+]
+
+[project.optional-dependencies]
+openai = ["agentpanel[openai]>=0.1.0,<0.2"]
+anthropic = ["agentpanel[anthropic]>=0.1.0,<0.2"]
+cloud = ["agentpanel[cloud]>=0.1.0,<0.2"]
+mcp = ["mcp>=2.3,<3"]
+dev = [
+    "agentpanel[cloud]>=0.1.0,<0.2",  # so tests exercise every provider
+    "api-shakedown[mcp]",
+    "pytest>=8",
+    "ruff>=0.6",
+    "mypy>=1.11",
+    "types-PyYAML",
+    "build>=1.2",
+    "twine>=5",
+]
+
+[project.urls]
+Homepage = "https://github.com/anzar-ahsan-commits/api-shakedown"
+Documentation = "https://github.com/anzar-ahsan-commits/api-shakedown#readme"
+Issues = "https://github.com/anzar-ahsan-commits/api-shakedown/issues"
+Changelog = "https://github.com/anzar-ahsan-commits/api-shakedown/blob/main/CHANGELOG.md"
+
+[project.scripts]
+shakedown = "api_shakedown.cli:app"
+shakedown-mcp = "api_shakedown.mcp_server:main"
+
+[tool.hatch.version]
+path = "src/api_shakedown/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/api_shakedown"]
+
+[tool.hatch.build.targets.sdist]
+include = ["/src/api_shakedown", "/examples", "/README.md", "/LICENSE"]
+
+# --- tooling (applies to the whole repo, including packages/*) ---
+
+[tool.pytest.ini_options]
+testpaths = ["tests", "packages/agentpanel/tests"]
+addopts = "--import-mode=importlib -m 'not live'"
+markers = ["live: talks to a real local LLM; run with `pytest -m live`"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+packages = ["agentpanel", "api_shakedown"]
+
+# Generated runners import their shipped sibling module by its top-level name.
+[[tool.mypy.overrides]]
+module = ["shakedown_support"]
+ignore_missing_imports = true
