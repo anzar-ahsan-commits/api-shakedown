@@ -113,7 +113,7 @@ def _with_happy_paths(
     for op in spec.operations:
         if op.id in covered:
             continue
-        fallback = happy_proposal(op, dataset)
+        fallback = happy_proposal(op, dataset, spec.openapi_version)
         if fallback is not None:
             result.append(fallback)
             if model is not None:

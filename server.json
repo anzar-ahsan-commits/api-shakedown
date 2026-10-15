@@ -8,21 +8,32 @@
     "source": "github"
   },
   "websiteUrl": "https://github.com/anzar-ahsan-commits/api-shakedown",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "packages": [
     {
       "registryType": "pypi",
       "identifier": "api-shakedown",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "runtimeHint": "uvx",
-      "transport": { "type": "stdio" },
-      "packageArguments": [{ "type": "positional", "value": "mcp" }],
+      "transport": {
+        "type": "stdio"
+      },
+      "packageArguments": [
+        {
+          "type": "positional",
+          "value": "mcp"
+        }
+      ],
       "environmentVariables": [
         {
           "name": "SHAKEDOWN_PROVIDER",
           "description": "LLM provider: ollama (default, local), openai, or anthropic.",
           "default": "ollama",
-          "choices": ["ollama", "openai", "anthropic"],
+          "choices": [
+            "ollama",
+            "openai",
+            "anthropic"
+          ],
           "isRequired": false
         },
         {
@@ -52,13 +63,26 @@
     },
     {
       "registryType": "oci",
-      "identifier": "ghcr.io/anzar-ahsan-commits/api-shakedown:0.1.1",
-      "transport": { "type": "stdio" },
+      "identifier": "ghcr.io/anzar-ahsan-commits/api-shakedown:0.1.2",
+      "transport": {
+        "type": "stdio"
+      },
       "runtimeArguments": [
-        { "type": "positional", "value": "-i" },
-        { "type": "positional", "value": "--rm" }
+        {
+          "type": "positional",
+          "value": "-i"
+        },
+        {
+          "type": "positional",
+          "value": "--rm"
+        }
       ],
-      "packageArguments": [{ "type": "positional", "value": "mcp" }]
+      "packageArguments": [
+        {
+          "type": "positional",
+          "value": "mcp"
+        }
+      ]
     }
   ]
 }

@@ -53,6 +53,7 @@ def create_chat_model(settings: LLMSettings | None = None) -> BaseChatModel:
     if settings.provider == "ollama":
         kwargs["client_kwargs"] = {"timeout": settings.resolved_timeout}
         kwargs["num_ctx"] = settings.context_window
+        kwargs["num_predict"] = settings.max_output_tokens
         if settings.reasoning is not None:
             kwargs["reasoning"] = settings.reasoning
     else:

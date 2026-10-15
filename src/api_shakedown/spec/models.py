@@ -14,6 +14,10 @@ class Parameter(BaseModel):
     required: bool = False
     description: str | None = None
     schema_: dict[str, Any] | None = Field(default=None, alias="schema")
+    # How the value goes on the wire (OpenAPI defaults apply when unset), see spec.params.
+    style: str | None = None
+    explode: bool | None = None
+    content_type: str | None = None  # set when the parameter is defined by `content`
 
     model_config = {"populate_by_name": True}
 

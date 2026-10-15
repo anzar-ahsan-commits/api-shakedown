@@ -63,6 +63,12 @@ class LLMSettings(BaseSettings):
         description="Ollama only: tokens of context. Ollama's own default is small and "
         "silently truncates long prompts.",
     )
+    max_output_tokens: int = Field(
+        default=8_192,
+        description="Ollama only: cap on tokens per reply. A small model can fall into a "
+        "repetition loop, and Ollama then shifts its context and keeps generating forever; "
+        "the cap turns that into a bounded, retryable failure.",
+    )
 
     reasoning: bool | None = Field(
         default=None,

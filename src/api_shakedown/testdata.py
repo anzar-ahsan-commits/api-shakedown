@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field
 from api_shakedown.spec.edge_cases import EdgeCase, object_edge_cases
 from api_shakedown.spec.edge_cases import properties_of as _properties
 from api_shakedown.spec.models import ApiSpec, Operation
-from api_shakedown.spec.samples import sample_from_schema
+from api_shakedown.spec.samples import valid_sample
 from api_shakedown.spec.schema_check import schema_errors
 
 DEFAULT_RECORDS = 3
@@ -93,17 +93,40 @@ def find_entities(spec: ApiSpec) -> dict[str, Entity]:
             schema = response.body.schema_ if response.body else None
             if response.status.startswith("2") and isinstance(schema, dict):
                 returned += [schema, schema.get("items")]
-    return {
+    entities = {
         name: Entity(name=name, schema=schema, id_field=id_field(schema))
         for name, schema in spec.schemas.items()
         if _is_object(schema) and schema in returned
     }
+    for entity in entities.values():
+        if entity.id_field is None:
+            entity.id_field = _path_key(spec, entity)
+    return entities
+
+
+def _path_key(spec: ApiSpec, entity: Entity) -> str | None:
+    """A key named by the path that returns the entity, e.g. `/collections/{collectionName}`
+    returning a schema with `name`: many APIs key resources by name or slug, not `id`."""
+    properties = {name.lower(): name for name in _properties(entity.schema_)}
+    for op in spec.operations:
+        params = re.findall(r"\{([^}]+)\}", op.path)
+        if not params or _single_entity(op, {entity.name: entity}) is None:
+            continue
+        param = params[-1].lower()
+        matches = [key for key in properties if param == key or param.endswith(key)]
+        if matches:
+            return properties[max(matches, key=len)]
+    return None
 
 
 def find_bindings(spec: ApiSpec, entities: dict[str, Entity]) -> list[ParamBinding]:
-    """Bind the last path parameter of each path that returns a single entity."""
+    """Bind the last path parameter of each path that returns a single entity.
+
+    When several operations share a path, the GET decides: a DELETE returning a deletion
+    receipt does not say what the path's resource is.
+    """
     bindings: dict[tuple[str, str], ParamBinding] = {}
-    for op in spec.operations:
+    for op in sorted(spec.operations, key=lambda op: op.method == "get"):  # GETs last: win
         entity = _single_entity(op, entities)
         params = re.findall(r"\{([^}]+)\}", op.path)
         if entity is None or entity.id_field is None or not params:
@@ -145,7 +168,7 @@ def sample_records(
     entity: Entity, openapi_version: str, count: int = DEFAULT_RECORDS
 ) -> list[dict[str, Any]]:
     """Deterministic records: schema samples with distinct ids and cycled enum values."""
-    base = sample_from_schema(entity.schema_)
+    base = valid_sample(entity.schema_, None, openapi_version)
     if not isinstance(base, dict):
         return []
     properties = _properties(entity.schema_)

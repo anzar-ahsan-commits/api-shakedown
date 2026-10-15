@@ -29,6 +29,14 @@ def test_creates_ollama_model_by_default() -> None:
     assert model.temperature == 0.1
 
 
+def test_ollama_replies_are_capped_so_a_looping_model_cannot_run_forever() -> None:
+    model = create_chat_model(LLMSettings())
+    assert isinstance(model, ChatOllama)
+    assert model.num_predict == 8192 and model.num_ctx == 16384
+    custom = create_chat_model(LLMSettings(max_output_tokens=2000))
+    assert isinstance(custom, ChatOllama) and custom.num_predict == 2000
+
+
 @pytest.mark.parametrize(
     ("provider", "class_name"), [("openai", "ChatOpenAI"), ("anthropic", "ChatAnthropic")]
 )

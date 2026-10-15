@@ -1,6 +1,11 @@
 """Deterministic sample values from a schema: the fallback when no LLM body is usable."""
 
-from typing import Any
+import contextlib
+import json
+from typing import Any, Literal
+
+from api_shakedown.spec.models import ApiSpec, Body
+from api_shakedown.spec.schema_check import schema_errors
 
 MAX_DEPTH = 8
 
@@ -20,19 +25,53 @@ _STRING_FORMATS = {
 }
 
 
-def sample_from_schema(schema: Any, _depth: int = 0) -> Any:
+def valid_sample(
+    schema: dict[str, Any] | None,
+    example: Any,
+    openapi_version: str,
+    direction: Literal["read", "write"] = "read",
+) -> Any:
+    """The first candidate that validates against `schema`.
+
+    Real specs often carry examples that contradict their own schemas: JSON written as a
+    string, or nested `example`s of the wrong type. Candidates, in order: the example as
+    given, the example parsed from JSON text, a schema sample that uses nested examples,
+    and one that ignores them. If none validates, the last one is returned.
+    """
+    if schema is None:
+        return example
+    candidates: list[Any] = []
+    if example is not None:
+        candidates.append(example)
+        if isinstance(example, str):
+            with contextlib.suppress(ValueError):
+                candidates.append(json.loads(example))
+    candidates += [sample_from_schema(schema), sample_from_schema(schema, use_examples=False)]
+    for candidate in candidates:
+        if candidate is not None and not schema_errors(
+            schema, candidate, openapi_version, direction
+        ):
+            return candidate
+    return candidates[-1]
+
+
+def sample_from_schema(schema: Any, _depth: int = 0, *, use_examples: bool = True) -> Any:
+    """A sample value for `schema`. `use_examples=False` ignores example/examples."""
     if not isinstance(schema, dict) or _depth > MAX_DEPTH or schema.get("x-circular"):
         return None
-    for key in ("example", "default", "const"):
+    for key in ("example", "default", "const") if use_examples else ("default", "const"):
         if key in schema:
             return schema[key]
-    if isinstance(schema.get("examples"), list) and schema["examples"]:
+    if use_examples and isinstance(schema.get("examples"), list) and schema["examples"]:
         return schema["examples"][0]
     if schema.get("enum"):
         return schema["enum"][0]
 
     if "allOf" in schema:
-        parts = [sample_from_schema(sub, _depth + 1) for sub in schema["allOf"]]
+        parts = [
+            sample_from_schema(sub, _depth + 1, use_examples=use_examples)
+            for sub in schema["allOf"]
+        ]
         if all(isinstance(part, dict) for part in parts):
             merged: dict[str, Any] = {}
             for part in parts:
@@ -41,7 +80,7 @@ def sample_from_schema(schema: Any, _depth: int = 0) -> Any:
         return next((part for part in parts if part is not None), None)
     for key in ("oneOf", "anyOf"):
         if schema.get(key):
-            return sample_from_schema(schema[key][0], _depth + 1)
+            return sample_from_schema(schema[key][0], _depth + 1, use_examples=use_examples)
 
     kind = _type_of(schema)
     if kind == "object":
@@ -49,12 +88,12 @@ def sample_from_schema(schema: Any, _depth: int = 0) -> Any:
         required = set(schema.get("required") or [])
         result = {}
         for name, prop in properties.items():
-            value = sample_from_schema(prop, _depth + 1)
+            value = sample_from_schema(prop, _depth + 1, use_examples=use_examples)
             if value is not None or name in required:
                 result[name] = value
         return result
     if kind == "array":
-        item = sample_from_schema(schema.get("items"), _depth + 1)
+        item = sample_from_schema(schema.get("items"), _depth + 1, use_examples=use_examples)
         count = max(1, int(schema.get("minItems", 1)))
         return [item] * count if item is not None else []
     if kind == "string":
@@ -98,3 +137,44 @@ def _number(schema: dict[str, Any], *, integer: bool) -> int | float:
     if high is not None and value > high:
         value = high
     return int(value) if integer else float(value)
+
+
+def example_problems(spec: ApiSpec) -> list[str]:
+    """Where the spec's own JSON examples contradict its schemas (worth telling its authors)."""
+    notes = []
+    for op in spec.operations:
+        bodies: list[tuple[str, Body | None, Literal["read", "write"]]] = [
+            (f"{op.id} request body", op.request_body, "write"),
+            *((f"{op.id} {r.status}", r.body, "read") for r in op.responses),
+        ]
+        for label, body, direction in bodies:
+            if body is None or body.schema_ is None or "json" not in body.content_type:
+                continue
+            version, schema = spec.openapi_version, body.schema_
+            if body.example is not None:
+                if not schema_errors(schema, body.example, version, direction):
+                    continue
+                parsed = _json_text(body.example)
+                if parsed is not None and not schema_errors(schema, parsed, version, direction):
+                    notes.append(f"{label}: the spec's example is JSON written as text; parsed it.")
+                else:
+                    notes.append(
+                        f"{label}: the spec's example does not match its own schema; "
+                        "generated a valid one instead."
+                    )
+                continue
+            nested = sample_from_schema(schema)
+            if nested is not None and schema_errors(schema, nested, version, direction):
+                notes.append(
+                    f"{label}: examples inside the spec's schema contradict it; ignored them."
+                )
+    return notes
+
+
+def _json_text(value: Any) -> Any:
+    if not isinstance(value, str):
+        return None
+    try:
+        return json.loads(value)
+    except ValueError:
+        return None

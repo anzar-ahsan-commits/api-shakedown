@@ -145,10 +145,10 @@ def test_stubs_serve_dataset_records(spec: ApiSpec, dataset: Dataset) -> None:
     assert mappings["listPets 200"]["response"]["jsonBody"] == PETS
     pet12 = mappings["getPet 200 petId=12"]
     assert pet12["request"]["urlPathPattern"] == "/v1/pets/12"
-    assert pet12["priority"] == 4 and pet12["response"]["jsonBody"] == PETS[1]
+    assert pet12["priority"] == 14 and pet12["response"]["jsonBody"] == PETS[1]
     assert mappings["deletePet 204 petId=11"]["response"]["status"] == 204
     unknown = mappings["getPet 404 (unknown id)"]
-    assert unknown["priority"] == 5 and unknown["response"]["status"] == 404
+    assert unknown["priority"] == 15 and unknown["response"]["status"] == 404
     assert "getPet 200" not in mappings  # no generic happy stub for a bound id
 
 

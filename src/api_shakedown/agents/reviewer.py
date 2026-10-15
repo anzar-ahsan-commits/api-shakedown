@@ -21,7 +21,7 @@ from api_shakedown.chaos import ChaosSuite
 from api_shakedown.contracts import ContractSuite
 from api_shakedown.spec import ApiSpec, Operation
 from api_shakedown.testdata import Dataset
-from api_shakedown.wiremock import RECORD_PRIORITY, StubSet
+from api_shakedown.wiremock import StubSet
 
 GENERAL = "general"
 MAX_CHARS = 16_000
@@ -171,9 +171,10 @@ def _when(mapping: dict[str, Any], meta: dict[str, Any]) -> str:
         header, value = next(iter(meta["selectedBy"].items()))
         meaning = " (the spec's 'default' response)" if value == "default" else ""
         return f"only when the client sends {header}: {value}{meaning}"
-    if mapping["priority"] == RECORD_PRIORITY:
+    role = meta.get("role")
+    if role == "record":
         return f"only for {mapping['name'].split(' ', 2)[2]} (a record in the test data)"
-    if mapping["name"].endswith("(unknown id)"):
+    if role == "unknown-id":
         return "for ids not in the test data"
     return "normal response"
 

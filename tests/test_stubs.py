@@ -132,11 +132,11 @@ def test_offline_stubs_cover_every_response(spec: ApiSpec) -> None:
     mappings = by_name(stubs)
 
     happy = mappings["getPet 200"]
-    assert happy["priority"] == 5 and "headers" not in happy["request"]
+    assert happy["priority"] == 15 and "headers" not in happy["request"]  # 1 path param, normal
     assert happy["request"] == {"method": "GET", "urlPathPattern": "/v1/pets/[0-9]+"}
 
     not_found = mappings["getPet 404"]
-    assert not_found["priority"] == 2
+    assert not_found["priority"] == 12  # 1 path param, header-selected
     assert not_found["request"]["headers"] == {STATUS_HEADER: {"equalTo": "404"}}
     assert not_found["response"]["status"] == 404
 

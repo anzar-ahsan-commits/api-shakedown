@@ -40,17 +40,21 @@ def build_request(case: dict[str, Any], status_header: str, select: str | None) 
     for name, value in case["path_params"].items():
         path = path.replace("{" + name + "}", quote(str(value), safe=""))
     headers = dict(case["headers"])
-    params = dict(case["query"])
+    # query_pairs is the query exactly as OpenAPI serializes it (exploded objects, repeated
+    # array items, ...); harnesses generated before it existed only have `query`.
+    # An empty list is meaningful (e.g. an exploded empty object sends nothing).
+    raw_pairs = case["query_pairs"] if "query_pairs" in case else list(case["query"].items())
+    params: list[tuple[str, str]] = [(str(key), str(value)) for key, value in raw_pairs]
     cookies: dict[str, str] = {}
     for auth in case["auth"]:
         if auth["scheme"] == "bearer":
             headers["Authorization"] = f"Bearer {API_KEY}"
         elif auth["scheme"] == "basic":
             headers["Authorization"] = "Basic " + base64.b64encode(BASIC_AUTH.encode()).decode()
+        elif auth["location"] == "query":
+            params.append((auth["name"], API_KEY))
         else:
-            {"header": headers, "query": params, "cookie": cookies}[auth["location"]][
-                auth["name"]
-            ] = API_KEY
+            {"header": headers, "cookie": cookies}[auth["location"]][auth["name"]] = API_KEY
     if cookies:
         headers["Cookie"] = "; ".join(f"{k}={v}" for k, v in cookies.items())
     if SELECT_STATUS and select:

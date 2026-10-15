@@ -101,15 +101,21 @@ def _parameters(raw_params: list[Any], notes: list[str]) -> list[Parameter]:
             notes.append(f"Skipped parameter {raw['name']!r} with unknown location {location!r}.")
             continue
         schema = raw.get("schema")
+        content_type = None
         if schema is None and isinstance(raw.get("content"), dict):
             body = _body(raw["content"])
             schema = body.schema_ if body else None
+            content_type = body.content_type if body else None
+        explode = raw.get("explode")
         merged[(raw["name"], location)] = Parameter(
             name=raw["name"],
             location=location,
             required=location == "path" or bool(raw.get("required", False)),
             description=raw.get("description"),
             schema=schema,
+            style=raw.get("style") if isinstance(raw.get("style"), str) else None,
+            explode=explode if isinstance(explode, bool) else None,
+            content_type=content_type,
         )
     return list(merged.values())
 

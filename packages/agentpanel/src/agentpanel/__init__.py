@@ -5,7 +5,7 @@ from agentpanel.graph import Workflow, WorkflowResult
 from agentpanel.llm_agents import LLMReviewer, LLMSpecialist
 from agentpanel.state import AgentContext, Artifact, Review, Verdict
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 __all__ = [
     "AgentContext",

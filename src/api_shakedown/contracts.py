@@ -12,7 +12,8 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 from api_shakedown.spec.models import ApiSpec, Operation, Parameter
-from api_shakedown.spec.samples import sample_from_schema
+from api_shakedown.spec.params import query_pairs
+from api_shakedown.spec.samples import sample_from_schema, valid_sample
 from api_shakedown.spec.schema_check import schema_errors
 from api_shakedown.testdata import Dataset
 from api_shakedown.wiremock import DEFAULT_STUB_URL, STATUS_HEADER, base_path, happy_response
@@ -53,6 +54,7 @@ class ContractCase(BaseModel):
     other_statuses: list[str]
     path_params: dict[str, Any]
     query: dict[str, Any]
+    query_pairs: list[list[str]] = Field(default_factory=list)  # as sent on the wire
     headers: dict[str, str]
     body: Any = None
     body_content_type: str | None = None
@@ -141,7 +143,9 @@ def proposal_problems(
     return problems
 
 
-def happy_proposal(op: Operation, dataset: Dataset | None = None) -> CaseProposal | None:
+def happy_proposal(
+    op: Operation, dataset: Dataset | None = None, openapi_version: str = "3.1.0"
+) -> CaseProposal | None:
     """Deterministic happy-path case from schema samples (and dataset ids when bound)."""
     happy = happy_response(op)
     if happy is None:
@@ -157,9 +161,9 @@ def happy_proposal(op: Operation, dataset: Dataset | None = None) -> CaseProposa
 
     body = None
     if op.request_body is not None:
-        body = op.request_body.example
-        if body is None:
-            body = sample_from_schema(op.request_body.schema_)
+        body = valid_sample(
+            op.request_body.schema_, op.request_body.example, openapi_version, "write"
+        )
     return CaseProposal(
         operation_id=op.id,
         name="happy_path",
@@ -224,6 +228,7 @@ def _case(spec: ApiSpec, op: Operation, proposal: CaseProposal, case_id: str) ->
         other_statuses=[r.status for r in op.responses if r is not response],
         path_params=proposal.path_params,
         query=proposal.query,
+        query_pairs=query_pairs(op, proposal.query),
         headers={k: v for k, v in proposal.headers.items() if k.lower() not in reserved},
         body=proposal.body,
         body_content_type=op.request_body.content_type if op.request_body else None,

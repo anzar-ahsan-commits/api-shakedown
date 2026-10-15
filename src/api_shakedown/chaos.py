@@ -20,10 +20,11 @@ from pydantic import BaseModel, Field
 from api_shakedown.contracts import SUPPORT_FILE, auth_requirements, happy_proposal, template
 from api_shakedown.spec.edge_cases import edge_cases, properties_of, required_properties
 from api_shakedown.spec.models import ApiSpec, Operation
+from api_shakedown.spec.params import query_pairs
 from api_shakedown.spec.schema_check import schema_errors
 from api_shakedown.testdata import Dataset
 from api_shakedown.wiremock import (
-    CHAOS_PRIORITY,
+    CHAOS_TIER,
     DEFAULT_STUB_URL,
     STATUS_HEADER,
     ResponseContent,
@@ -32,6 +33,7 @@ from api_shakedown.wiremock import (
     happy_response,
     request_matcher,
     response_definition,
+    route_priority,
     sample_content,
 )
 
@@ -94,6 +96,7 @@ class ProbeCase(BaseModel):
     path: str
     path_params: dict[str, Any]
     query: dict[str, Any]
+    query_pairs: list[list[str]] = Field(default_factory=list)  # as sent on the wire
     headers: dict[str, str] = Field(default_factory=dict)
     body: Any = None
     raw_body: str | None = None
@@ -251,12 +254,12 @@ def compile_scenario(
     scenario_id = proposal.name.replace("_", "-")
     mappings = []
     for op in targets:
-        response = _chaos_response(op, proposal.effect, dataset)
+        response = _chaos_response(op, proposal.effect, dataset, spec.openapi_version)
         if response is None:
             continue
         base: dict[str, Any] = {
             "name": f"chaos {scenario_id} {op.id}",
-            "priority": CHAOS_PRIORITY,
+            "priority": route_priority(op, CHAOS_TIER),
             "request": request_matcher(op, prefix),
             "response": response,
             "metadata": {"shakedown": {"scenario": scenario_id, "operationId": op.id}},
@@ -275,17 +278,17 @@ def compile_scenario(
 
 
 def _chaos_response(
-    op: Operation, effect: Effect, dataset: Dataset | None
+    op: Operation, effect: Effect, dataset: Dataset | None, version: str
 ) -> dict[str, Any] | None:
     happy = happy_response(op)
     if happy is None:
         return None
     content = dataset_content(happy, dataset, creating=op.method == "post")
-    content = content or sample_content(happy)
+    content = content or sample_content(happy, version)
     if effect.fault:
         response: dict[str, Any] = {"fault": effect.fault}
     elif effect.status:
-        response = _status_response(op, effect.status)
+        response = _status_response(op, effect.status, version)
     elif effect.malformation:
         response = _malformed_response(op, happy.status, content, effect.malformation)
     else:
@@ -297,10 +300,10 @@ def _chaos_response(
     return response
 
 
-def _status_response(op: Operation, status: int) -> dict[str, Any]:
+def _status_response(op: Operation, status: int, version: str) -> dict[str, Any]:
     documented = next((r for r in op.responses if r.status == str(status)), None)
     if documented is not None:
-        return response_definition(documented, sample_content(documented))
+        return response_definition(documented, sample_content(documented, version))
     return {
         "status": status,
         "headers": {"Content-Type": "application/json"},
@@ -365,7 +368,7 @@ def _json_happy(op: Operation) -> bool:
 def build_probes(spec: ApiSpec, dataset: Dataset | None) -> list[ProbeCase]:
     probes: list[ProbeCase] = []
     for op in spec.operations:
-        base = happy_proposal(op, dataset)
+        base = happy_proposal(op, dataset, spec.openapi_version)
         if base is None:
             continue
         stub_status = next(
@@ -381,6 +384,7 @@ def build_probes(spec: ApiSpec, dataset: Dataset | None) -> list[ProbeCase]:
             }
             fields.update(change)
             fields["query"] = dict(base.query) | change.get("query", {})
+            fields["query_pairs"] = query_pairs(op, fields["query"])
             probes.append(
                 ProbeCase(
                     id=f"{op.id}-{i + 1:02d}-{_slug(description)}",

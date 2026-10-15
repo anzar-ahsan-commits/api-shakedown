@@ -28,7 +28,7 @@ from api_shakedown.spec import load_spec
 from api_shakedown.spec.models import ApiSpec
 from api_shakedown.spec.schema_check import schema_errors
 from api_shakedown.testdata import Dataset
-from api_shakedown.wiremock import CHAOS_PRIORITY, StubSet, base_path
+from api_shakedown.wiremock import CHAOS_TIER, StubSet, base_path, route_priority
 
 PETSTORE = Path(__file__).parents[1] / "examples" / "petstore.yaml"
 BASELINE = [
@@ -76,7 +76,11 @@ def test_baseline_scenarios(spec: ApiSpec) -> None:
     assert all(s.source == "baseline" for s in suite.scenarios)
     outage = suite.scenarios[0]
     assert len(outage.mappings) == len(spec.operations)
-    assert {m["priority"] for m in outage.mappings} == {CHAOS_PRIORITY}
+    ops = {op.id: op for op in spec.operations}
+    for m in outage.mappings:
+        assert m["priority"] == route_priority(
+            ops[m["metadata"]["shakedown"]["operationId"]], CHAOS_TIER
+        )
     truncated = suite.scenarios[-1]
     assert {m["metadata"]["shakedown"]["operationId"] for m in truncated.mappings} == {
         "listPets", "createPet", "getPet",

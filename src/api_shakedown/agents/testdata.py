@@ -66,12 +66,11 @@ class DatasetAgent:
         notes: list[str] = []
         if self.model is not None and entities:
             feedback = render_feedback(ctx.feedback_for(self.name))
-            for group in _groups(list(entities.values()), self.max_chars):
+            chosen = _worth_generating(list(entities.values()), self.max_chars, notes)
+            for group in _groups(chosen, self.max_chars):
                 await self._generate(self.model, spec, group, feedback, notes)
             notes += [
-                f"{e.name}: used deterministic sample records."
-                for e in entities.values()
-                if not e.records
+                f"{e.name}: used deterministic sample records." for e in chosen if not e.records
             ]
         return build_dataset(spec, entities, notes)
 
@@ -103,6 +102,28 @@ class DatasetAgent:
                 if not record_problems(entity, [*valid, record], spec.openapi_version):
                     valid.append(record)
             entity.records = valid
+
+
+def _worth_generating(entities: list[Entity], max_chars: int, notes: list[str]) -> list[Entity]:
+    """Resources (schemas with a key) small enough for one prompt.
+
+    Keyless schemas are response envelopes (search results, status objects) rather than
+    data, and a single huge schema stalls a small model; both get valid schema samples.
+    """
+    envelopes = sorted(e.name for e in entities if e.id_field is None)
+    oversized = [e for e in entities if e.id_field and len(json.dumps(e.schema_)) > max_chars]
+    if envelopes:
+        shown = ", ".join(envelopes[:4]) + (", ..." if len(envelopes) > 4 else "")
+        notes.append(
+            f"{len(envelopes)} response schemas without a key ({shown}) use schema samples "
+            "rather than generated records."
+        )
+    notes += [
+        f"{e.name}: schema too large for one prompt ({len(json.dumps(e.schema_))} chars); "
+        "used schema samples."
+        for e in oversized
+    ]
+    return [e for e in entities if e.id_field and e not in oversized]
 
 
 def _groups(entities: list[Entity], max_chars: int) -> list[list[Entity]]:
