@@ -37,6 +37,14 @@ def version() -> None:
 
 
 @app.command()
+def mcp() -> None:
+    """Run the MCP server on stdio (same as `shakedown-mcp`)."""
+    from api_shakedown.mcp_server import main  # imported here: keeps other commands fast
+
+    main()
+
+
+@app.command()
 def doctor(provider: ProviderOption = None, model: ModelOption = None) -> None:
     """Check that the configured LLM provider is reachable and ready."""
     status = check_provider(_settings(provider, model))

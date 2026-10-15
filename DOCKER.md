@@ -44,7 +44,7 @@ never appears in the command line or the image. Never bake keys into an image.
 ## MCP server
 
 ```bash
-docker run -i --rm -v "$PWD:/work" --entrypoint shakedown-mcp api-shakedown
+docker run -i --rm -v "$PWD:/work" ghcr.io/anzar-ahsan-commits/api-shakedown mcp
 ```
 
 See the MCP section of the README for registering it with a client.

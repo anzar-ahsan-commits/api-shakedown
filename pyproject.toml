@@ -30,16 +30,16 @@ dependencies = [
     "pyyaml>=6.0",
     "httpx>=0.27",
     "openapi-spec-validator>=0.7",
+    "mcp>=2.3,<3",
 ]
 
 [project.optional-dependencies]
 openai = ["agentpanel[openai]>=0.1.0,<0.2"]
 anthropic = ["agentpanel[anthropic]>=0.1.0,<0.2"]
 cloud = ["agentpanel[cloud]>=0.1.0,<0.2"]
-mcp = ["mcp>=2.3,<3"]
+mcp = []  # kept for compatibility: the MCP server is always included
 dev = [
     "agentpanel[cloud]>=0.1.0,<0.2",  # so tests exercise every provider
-    "api-shakedown[mcp]",
     "pytest>=8",
     "ruff>=0.6",
     "mypy>=1.11",
@@ -56,6 +56,7 @@ Changelog = "https://github.com/anzar-ahsan-commits/api-shakedown/blob/main/CHAN
 
 [project.scripts]
 shakedown = "api_shakedown.cli:app"
+api-shakedown = "api_shakedown.cli:app"  # so `uvx api-shakedown mcp` works
 shakedown-mcp = "api_shakedown.mcp_server:main"
 
 [tool.hatch.version]

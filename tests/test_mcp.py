@@ -157,9 +157,14 @@ def test_chaos_tools_need_a_harness(tmp_path: Path) -> None:
 # --- the real entry point over stdio --------------------------------------------------------
 
 
-def test_stdio_entry_point(tmp_path: Path) -> None:
-    exe = Path(sys.executable).with_name("shakedown-mcp")
-    params = StdioServerParameters(command=str(exe), args=[], cwd=tmp_path)
+@pytest.mark.parametrize(
+    ("command", "args"),
+    [("shakedown-mcp", []), ("api-shakedown", ["mcp"]), ("shakedown", ["mcp"])],
+)
+def test_stdio_entry_points(tmp_path: Path, command: str, args: list[str]) -> None:
+    """Every documented way to start the server, incl. what `uvx api-shakedown mcp` runs."""
+    exe = Path(sys.executable).with_name(command)
+    params = StdioServerParameters(command=str(exe), args=args, cwd=tmp_path)
 
     async def go() -> Any:
         async with Client(params) as client:

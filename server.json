@@ -1,0 +1,64 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.anzar-ahsan-commits/api-shakedown",
+  "title": "API Shakedown",
+  "description": "Turn an OpenAPI spec into WireMock stubs, contract tests and chaos scenarios, on local LLMs.",
+  "repository": {
+    "url": "https://github.com/anzar-ahsan-commits/api-shakedown",
+    "source": "github"
+  },
+  "websiteUrl": "https://github.com/anzar-ahsan-commits/api-shakedown",
+  "version": "0.1.1",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "api-shakedown",
+      "version": "0.1.1",
+      "runtimeHint": "uvx",
+      "transport": { "type": "stdio" },
+      "packageArguments": [{ "type": "positional", "value": "mcp" }],
+      "environmentVariables": [
+        {
+          "name": "SHAKEDOWN_PROVIDER",
+          "description": "LLM provider: ollama (default, local), openai, or anthropic.",
+          "default": "ollama",
+          "choices": ["ollama", "openai", "anthropic"],
+          "isRequired": false
+        },
+        {
+          "name": "SHAKEDOWN_MODEL",
+          "description": "Model name; defaults per provider (qwen3:8b for Ollama).",
+          "isRequired": false
+        },
+        {
+          "name": "SHAKEDOWN_OLLAMA_URL",
+          "description": "Where Ollama runs.",
+          "default": "http://localhost:11434",
+          "isRequired": false
+        },
+        {
+          "name": "OPENAI_API_KEY",
+          "description": "Only for SHAKEDOWN_PROVIDER=openai.",
+          "isRequired": false,
+          "isSecret": true
+        },
+        {
+          "name": "ANTHROPIC_API_KEY",
+          "description": "Only for SHAKEDOWN_PROVIDER=anthropic.",
+          "isRequired": false,
+          "isSecret": true
+        }
+      ]
+    },
+    {
+      "registryType": "oci",
+      "identifier": "ghcr.io/anzar-ahsan-commits/api-shakedown:0.1.1",
+      "transport": { "type": "stdio" },
+      "runtimeArguments": [
+        { "type": "positional", "value": "-i" },
+        { "type": "positional", "value": "--rm" }
+      ],
+      "packageArguments": [{ "type": "positional", "value": "mcp" }]
+    }
+  ]
+}

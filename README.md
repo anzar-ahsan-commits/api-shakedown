@@ -1,5 +1,7 @@
 # API Shakedown
 
+<!-- mcp-name: io.github.anzar-ahsan-commits/api-shakedown -->
+
 **Give it an OpenAPI spec. Get back a ready-to-run test harness: WireMock stubs, contract
 tests, robustness probes, and chaos scenarios, written by a team of LLM agents that
 review each other's work.**
@@ -13,7 +15,12 @@ Runs **locally on [Ollama](https://ollama.com) by default**: no API key, no data
 your machine. Cloud models (OpenAI, Anthropic) are bring-your-own-key. Available as a
 CLI, a Docker image, and an **MCP server** so an AI assistant can drive it.
 
-> Status: alpha (0.1.0). Works end to end on the example spec with a local 8B model.
+> Status: alpha (0.1.1). Works end to end on the example spec with a local 8B model.
+
+![Demo: shakedown run generates a harness, its contract tests pass, and a chaos drill makes the first two calls fail with 503 before recovering](https://raw.githubusercontent.com/anzar-ahsan-commits/api-shakedown/main/docs/demo.gif)
+
+*A real run on the bundled example with `qwen3:8b` on a laptop, sped up: generation
+took about 9 minutes. Recording: [docs/demo.cast](https://github.com/anzar-ahsan-commits/api-shakedown/blob/main/docs/demo.cast).*
 
 ---
 
@@ -190,9 +197,8 @@ Things code guarantees, so the model never has to:
 ## Install
 
 ```bash
-pip install api-shakedown              # local models via Ollama
+pip install api-shakedown              # local models via Ollama; includes the MCP server
 pip install "api-shakedown[cloud]"     # plus OpenAI and Anthropic
-pip install "api-shakedown[mcp]"       # plus the MCP server
 ```
 
 Or use the Docker image, which includes everything: see [Docker](#docker).
@@ -272,9 +278,12 @@ generate harnesses and run failure drills:
 | `activate_chaos` / `deactivate_chaos` | Switch a scenario on/off in a running WireMock |
 
 ```bash
-pip install "api-shakedown[mcp]"
-claude mcp add api-shakedown -- shakedown-mcp          # Claude Code
+claude mcp add api-shakedown -- uvx api-shakedown mcp     # Claude Code, nothing to install
+claude mcp add api-shakedown -- shakedown-mcp             # Claude Code, after pip install
 ```
+
+Name in the [official MCP Registry](https://registry.modelcontextprotocol.io):
+`io.github.anzar-ahsan-commits/api-shakedown`.
 
 Other clients (`mcpServers` in their config):
 
@@ -282,7 +291,8 @@ Other clients (`mcpServers` in their config):
 {
   "mcpServers": {
     "api-shakedown": {
-      "command": "shakedown-mcp",
+      "command": "uvx",
+      "args": ["api-shakedown", "mcp"],
       "env": { "SHAKEDOWN_PROVIDER": "ollama" }
     }
   }

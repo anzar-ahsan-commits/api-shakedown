@@ -18,6 +18,8 @@ RUN python -m build --wheel packages/agentpanel --outdir /dist \
  && python -m build --wheel . --outdir /dist
 
 FROM python:3.12-slim
+# Lets the MCP Registry verify this image belongs to the registered server.
+LABEL io.modelcontextprotocol.server.name="io.github.anzar-ahsan-commits/api-shakedown"
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     SHAKEDOWN_OLLAMA_URL=http://host.docker.internal:11434
