@@ -27,6 +27,7 @@ took about 9 minutes. Recording: [docs/demo.cast](https://github.com/anzar-ahsan
 ## Contents
 
 - [Why](#why)
+- [Where it helps](#where-it-helps)
 - [Quick start](#quick-start)
 - [What you get](#what-you-get)
 - [How it works](#how-it-works)
@@ -57,6 +58,22 @@ API Shakedown generates all three from the spec you already have, and keeps them
 cases, failure scenarios, test records), and code validates every item against the
 spec, feeds problems back to the model, and falls back to deterministic output when a
 model cannot get it right. Without any model at all (`--offline`), every part still works.
+
+## Where it helps
+
+| Situation | Typical teams | What API Shakedown gives you |
+|---|---|---|
+| **Building before the backend exists** | Frontend, mobile, partner integrators | A virtual service generated from the agreed spec, so work starts on day one instead of after the backend ships or after hand-written mocks. |
+| **Depending on APIs you don't control** (payments, shipping, identity checks, credit bureaus) | Fintech, e-commerce, logistics, insurance | Vendor sandboxes are often rate-limited, flaky or billed per call. Test locally what your app does when the provider times out, rate-limits you, or returns 503 twice before recovering. |
+| **Proving clients survive failure** | Microservice teams, SRE game days | Switch timeouts, rate limits, flaky calls and partial outages on and off while your client runs, and confirm retries, backoff and fallbacks really work. |
+| **Catching spec drift before release** | API owners, platform and public-API teams | Contract tests run against a real deployment in CI and fail when the implementation stops matching its spec. |
+| **Hardening input validation** | Any API team | Robustness probes check that malformed requests get a 4xx, never a 500. A complement to a security review, not a replacement. |
+| **Regulated or offline environments** | Banking, healthcare, government | Everything runs on a local model: the spec never leaves the machine, where many AI tools cannot be used at all. |
+| **Migrating or rewriting a service** | Legacy modernisation | Generate contract tests from the existing spec and run them against the new implementation to confirm it behaves the same. |
+| **Working through an AI assistant** | Developers using Claude and other MCP clients | The assistant generates the harness and runs failure drills on request. |
+
+It is not a load-testing tool or a security scanner, and the virtual service does not keep
+state between calls; see [Limitations](#limitations).
 
 ## Quick start
 
@@ -361,12 +378,18 @@ tests/                   # offline tests; `-m live` for Ollama + Docker tests
   between calls.
 - **Probes against stubs** only cover operations that document a 4xx; they are meant for
   real servers.
-- Tested so far mainly on the bundled example. Reports from larger real-world specs are
-  very welcome.
+- **Contract tests assume data exists**: against an empty real server, cases that read a
+  record fail until you create it (setup steps are on the roadmap).
+- **Scope**: not a load-testing tool or a security scanner.
+- **Large specs are slow on a laptop**: the Typesense API (79 operations) takes several
+  hours end to end with `qwen3:8b` on a laptop GPU, versus minutes for small specs. A
+  bigger GPU or a cloud model is much faster; `--offline` takes seconds. Reports from more
+  real-world specs are very welcome.
 
 ## Roadmap
 
-- Larger real-world specs: batching and timing at 30+ operations
+- Faster runs on large specs (smaller prompts per batch, progress per batch)
+- Setup steps for contract tests, so they create the data they read on a real server
 - Stateful stubs (WireMock response templating, created records visible to later calls)
 - Auth-failure scenarios (401/403) and "valid but nasty input must not 5xx" probes
 - Review of the test dataset
