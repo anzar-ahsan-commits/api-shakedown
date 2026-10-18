@@ -24,11 +24,11 @@ jobs:
           tag="${GITHUB_REF_NAME#v}"
           ls dist | grep -q "agentpanel-${tag}-" || { echo "agentpanel is not $tag"; exit 1; }
           ls dist | grep -q "api_shakedown-${tag}-" || { echo "api-shakedown is not $tag"; exit 1; }
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: dist-agentpanel
           path: dist/agentpanel-*
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: dist-api-shakedown
           path: dist/api_shakedown-*
