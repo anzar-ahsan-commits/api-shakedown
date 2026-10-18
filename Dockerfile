@@ -7,7 +7,7 @@
 # Ollama on the host is reached at host.docker.internal (on Linux, add
 # --add-host=host.docker.internal:host-gateway). See DOCKER.md.
 
-FROM python:3.12-slim AS build
+FROM python:3.14-slim AS build
 WORKDIR /src
 RUN pip install --no-cache-dir build
 COPY packages/agentpanel packages/agentpanel
@@ -17,7 +17,7 @@ COPY examples examples
 RUN python -m build --wheel packages/agentpanel --outdir /dist \
  && python -m build --wheel . --outdir /dist
 
-FROM python:3.12-slim
+FROM python:3.14-slim
 # Lets the MCP Registry verify this image belongs to the registered server.
 LABEL io.modelcontextprotocol.server.name="io.github.anzar-ahsan-commits/api-shakedown"
 ENV PYTHONDONTWRITEBYTECODE=1 \
