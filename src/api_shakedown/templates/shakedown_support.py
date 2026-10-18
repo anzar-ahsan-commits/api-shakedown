@@ -8,11 +8,16 @@ Environment variables:
   SHAKEDOWN_API_KEY        Credential for apiKey and bearer security (default: test-key).
   SHAKEDOWN_BASIC_AUTH     "user:password" for HTTP basic security.
   SHAKEDOWN_TIMEOUT        Request timeout in seconds (default: 10).
+  SHAKEDOWN_SEED           "1" to create the test dataset's records on the server before
+                           the contract tests, and delete them afterwards. This writes
+                           to the server under test: use a disposable or test instance.
 """
 
 import base64
+import contextlib
 import json
 import os
+import warnings
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote
@@ -23,6 +28,7 @@ SELECT_STATUS = os.environ.get("SHAKEDOWN_SELECT_STATUS") == "1"
 API_KEY = os.environ.get("SHAKEDOWN_API_KEY", "test-key")
 BASIC_AUTH = os.environ.get("SHAKEDOWN_BASIC_AUTH", "user:password")
 TIMEOUT = float(os.environ.get("SHAKEDOWN_TIMEOUT", "10"))
+SEED = os.environ.get("SHAKEDOWN_SEED") == "1"
 
 
 def load_cases(runner_file: str, name: str) -> dict[str, Any]:
@@ -76,6 +82,57 @@ def build_request(case: dict[str, Any], status_header: str, select: str | None) 
             headers["Content-Type"] = content_type
     request["headers"] = headers
     return request
+
+
+def run_order(cases: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Cases that delete something run last, so they don't remove what other cases read."""
+    return sorted(cases, key=lambda c: c["method"] == "delete" and c["expected_status"][0] == "2")
+
+
+def seed(client: Any, steps: list[dict[str, Any]], status_header: str) -> list[dict[str, Any]]:
+    """Send each step's create request; returns the steps that created something.
+
+    A refused create is retried with only the required fields, and steps that still fail
+    get a second pass (they may need a record created later in the first). A 409 means
+    the record already exists: it is used but not deleted afterwards, since it was there
+    before the tests.
+    """
+    created: list[dict[str, Any]] = []
+    pending = list(steps)
+    for _ in range(2):
+        failed: list[str] = []
+        retry = []
+        for step in pending:
+            response = None
+            for request in (step["create"], step.get("fallback")):
+                if request is None:
+                    continue
+                response = client.request(**build_request(request, status_header, None))
+                if response.is_success or response.status_code == 409:
+                    break
+            assert response is not None
+            if response.is_success:
+                created.append(step)
+            elif response.status_code != 409:
+                retry.append(step)
+                failed.append(
+                    f"{step['entity']} {step['record_id']}: {response.status_code} "
+                    f"{response.text[:200]}"
+                )
+        pending = retry
+        if not pending:
+            break
+    if failed:
+        warnings.warn("Some test records could not be created:\n" + "\n".join(failed), stacklevel=2)
+    return created
+
+
+def unseed(client: Any, created: list[dict[str, Any]], status_header: str) -> None:
+    """Delete seeded records, children first. Failures are ignored."""
+    for step in reversed(created):
+        if step.get("delete"):
+            with contextlib.suppress(Exception):  # cleanup is best effort
+                client.request(**build_request(step["delete"], status_header, None))
 
 
 def status_matches(actual: int, expected: str, others: list[str]) -> bool:

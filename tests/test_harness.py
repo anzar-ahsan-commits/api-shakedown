@@ -45,7 +45,7 @@ def test_offline_harness_files(spec: ApiSpec) -> None:
     harness = offline(spec)
     assert set(harness.files) == EXPECTED_FILES
     assert harness.summary == {
-        "operations": 5, "stub_mappings": 15, "contract_cases": 5,
+        "operations": 5, "stub_mappings": 15, "contract_cases": 5, "seed_records": 0,
         "chaos_scenarios": 7, "robustness_probes": 30, "records": 3,
     }  # fmt: skip
     compose = harness.files["docker-compose.yml"]

@@ -21,6 +21,7 @@ from api_shakedown.contracts import (
     happy_proposal,
     proposal_problems,
 )
+from api_shakedown.seeding import seed_plan
 from api_shakedown.spec import ApiSpec, Operation, chunk_operations
 from api_shakedown.spec.chunking import DEFAULT_MAX_CHARS
 from api_shakedown.testdata import Dataset
@@ -68,7 +69,11 @@ class ContractTestAgent:
             for chunk in chunk_operations(spec.operations, self.max_chars):
                 proposals += await self._generate(self.model, spec, dataset, chunk, feedback, notes)
         cases = _with_happy_paths(spec, dataset, proposals, notes, self.model)
-        return build_suite(spec, cases, notes)
+        suite = build_suite(spec, cases, notes)
+        if dataset is not None:
+            suite.setup, seed_notes = seed_plan(spec, dataset)
+            suite.notes += seed_notes
+        return suite
 
     async def _generate(
         self,

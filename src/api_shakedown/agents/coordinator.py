@@ -76,6 +76,7 @@ def build_harness(
         "operations": len(spec.operations),
         "stub_mappings": len(stubs.mappings),
         "contract_cases": len(contracts.cases),
+        "seed_records": len(contracts.setup),
         "chaos_scenarios": len(chaos.scenarios),
         "robustness_probes": len(chaos.probes),
         "records": sum(len(e.records) for e in dataset.entities.values()) if dataset else 0,
@@ -147,6 +148,11 @@ def _readme(
     target = DEFAULT_STUB_URL + base_path(spec)
     s = harness.summary
     when = f" on {generated_at}" if generated_at else ""
+    seeding = (
+        f", plus {s['seed_records']} test records to create first with `SHAKEDOWN_SEED=1`"
+        if s.get("seed_records")
+        else ""
+    )
     scenario_rows = "\n".join(
         f"| `{sc.id}` | {sc.category} | {sc.title} | {sc.expectation} |" for sc in chaos.scenarios
     )
@@ -164,7 +170,9 @@ def _readme(
         "python chaos/chaos.py on flaky-start\n"
         "python chaos/chaos.py off\n\n"
         "# Against a real deployment: contract tests and robustness probes\n"
-        "SHAKEDOWN_TARGET_URL=https://api.example.com/v1 pytest tests\n"
+        "SHAKEDOWN_TARGET_URL=https://api.example.com/v1 pytest tests\n\n"
+        "# Same, creating the test records first (writes to the server: use a test instance)\n"
+        "SHAKEDOWN_SEED=1 SHAKEDOWN_TARGET_URL=https://api.example.com/v1 pytest tests\n"
         "```",
         'PowerShell: `$env:SHAKEDOWN_SELECT_STATUS = "1"; pytest tests/test_contract.py`.',
         f"The stubs serve `{target}`. Use another port with `SHAKEDOWN_WIREMOCK_PORT`, then "
@@ -173,7 +181,7 @@ def _readme(
         "| | |\n|---|---|\n"
         f"| `wiremock/mappings/` | {s['stub_mappings']} stub mappings for {s['operations']} "
         "operations |\n"
-        f"| `tests/test_contract.py` | {s['contract_cases']} contract test cases |\n"
+        f"| `tests/test_contract.py` | {s['contract_cases']} contract test cases{seeding} |\n"
         f"| `tests/test_robustness.py` | {s['robustness_probes']} malformed-request probes "
         "(expect 4xx, never 5xx) |\n"
         f"| `chaos/chaos.py` | {s['chaos_scenarios']} failure scenarios to inject into the "

@@ -63,12 +63,37 @@ class ContractCase(BaseModel):
     response_schema: dict[str, Any] | None = None
 
 
+class SeedRequest(BaseModel):
+    """A request the runner sends around the tests, in the same shape as a case."""
+
+    method: str
+    path: str
+    path_params: dict[str, Any] = Field(default_factory=dict)
+    query: dict[str, Any] = Field(default_factory=dict)
+    query_pairs: list[list[str]] = Field(default_factory=list)
+    headers: dict[str, str] = Field(default_factory=dict)
+    body: Any = None
+    body_content_type: str | None = None
+    auth: list[AuthRequirement] = Field(default_factory=list)
+
+
+class SeedStep(BaseModel):
+    """Creates one dataset record before the tests (and deletes it after, if possible)."""
+
+    entity: str
+    record_id: str
+    create: SeedRequest
+    fallback: SeedRequest | None = None  # the same create with only the required fields
+    delete: SeedRequest | None = None
+
+
 class ContractSuite(BaseModel):
     title: str
     version: str
     openapi_version: str
     default_target: str
     cases: list[ContractCase]
+    setup: list[SeedStep] = Field(default_factory=list)  # sent with SHAKEDOWN_SEED=1
     notes: list[str] = Field(default_factory=list)
 
     def files(self) -> dict[str, str]:

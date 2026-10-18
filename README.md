@@ -249,7 +249,12 @@ docker compose up -d                                     # stubs on http://local
 SHAKEDOWN_SELECT_STATUS=1 pytest tests/test_contract.py  # against the stubs
 python chaos/chaos.py list | on <scenario> | off         # failure drills
 SHAKEDOWN_TARGET_URL=https://api.example.com/v1 pytest tests   # against a real server
+SHAKEDOWN_SEED=1 SHAKEDOWN_TARGET_URL=... pytest tests   # create the test records first
 ```
+
+With `SHAKEDOWN_SEED=1`, the contract tests first create the test dataset's records on
+the server, using the spec's own create operations, and delete them when they finish.
+This writes to the server, so point it at a test instance.
 
 PowerShell: `$env:SHAKEDOWN_SELECT_STATUS = "1"; pytest tests/test_contract.py`.
 
@@ -278,7 +283,7 @@ SHAKEDOWN_AGENT_MODELS='{"reviewer": "anthropic:claude-sonnet-5-5"}' shakedown r
 ```
 
 Generated harnesses read `SHAKEDOWN_TARGET_URL`, `SHAKEDOWN_SELECT_STATUS`,
-`SHAKEDOWN_API_KEY`, `SHAKEDOWN_BASIC_AUTH`, `SHAKEDOWN_TIMEOUT`, and
+`SHAKEDOWN_SEED`, `SHAKEDOWN_API_KEY`, `SHAKEDOWN_BASIC_AUTH`, `SHAKEDOWN_TIMEOUT`, and
 `SHAKEDOWN_WIREMOCK_PORT` / `SHAKEDOWN_WIREMOCK_URL`.
 
 ## MCP server
@@ -378,8 +383,10 @@ tests/                   # offline tests; `-m live` for Ollama + Docker tests
   between calls.
 - **Probes against stubs** only cover operations that document a 4xx; they are meant for
   real servers.
-- **Contract tests assume data exists**: against an empty real server, cases that read a
-  record fail until you create it (setup steps are on the roadmap).
+- **Seeding has limits**: `SHAKEDOWN_SEED=1` can only create records the spec lets it
+  create with the test data's ids, and real servers often enforce rules the spec doesn't
+  state. Records it can't create are listed in a warning, and tests that read them fail
+  with 404 until you create them yourself.
 - **Scope**: not a load-testing tool or a security scanner.
 - **Large specs are slow on a laptop**: the Typesense API (79 operations) takes several
   hours end to end with `qwen3:8b` on a laptop GPU, versus minutes for small specs. A
@@ -389,7 +396,8 @@ tests/                   # offline tests; `-m live` for Ollama + Docker tests
 ## Roadmap
 
 - Faster runs on large specs (smaller prompts per batch, progress per batch)
-- Setup steps for contract tests, so they create the data they read on a real server
+- Smarter seeding: capture server-assigned ids from create responses, so resources like
+  API keys can be seeded too
 - Stateful stubs (WireMock response templating, created records visible to later calls)
 - Auth-failure scenarios (401/403) and "valid but nasty input must not 5xx" probes
 - Review of the test dataset

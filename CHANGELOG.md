@@ -6,6 +6,24 @@ All notable changes are documented here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- Seeding for contract tests. Generated suites include setup steps that create the test
+  dataset's records on a real server, derived by code from the spec's create operations
+  (a `POST` to the collection that takes the key, or a `PUT` on the item path). Run with
+  `SHAKEDOWN_SEED=1`: parents are created before children, a refused create is retried
+  with only the required fields, failures get a second pass and are reported in a
+  warning, and created records are deleted afterwards. Records that already existed
+  (409) are left alone. On Typesense this created 12 of 30 records and turned 8 more
+  contract cases green; the rest are refused by server rules the spec doesn't state.
+- Generation notes explain resources that can't be seeded, for example when the server
+  assigns the id.
+
+### Changed
+
+- Contract cases that delete something run last, so they don't remove records that
+  other cases read.
+
 ## [0.1.2] - 2026-10-15
 
 Found by running the Typesense spec (79 operations) against its stubs and a real server.
