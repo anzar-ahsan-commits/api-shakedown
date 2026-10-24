@@ -15,7 +15,7 @@ Runs **locally on [Ollama](https://ollama.com) by default**: no API key, no data
 your machine. Cloud models (OpenAI, Anthropic) are bring-your-own-key. Available as a
 CLI, a Docker image, and an **MCP server** so an AI assistant can drive it.
 
-> Status: alpha (0.1.2). Works end to end on the example spec with a local 8B model.
+> Status: alpha (0.1.3). Works end to end on the example spec with a local 8B model.
 
 ![Demo: shakedown run generates a harness, its contract tests pass, and a chaos drill makes the first two calls fail with 503 before recovering](https://raw.githubusercontent.com/anzar-ahsan-commits/api-shakedown/main/docs/demo.gif)
 

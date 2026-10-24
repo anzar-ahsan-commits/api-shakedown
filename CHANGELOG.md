@@ -6,6 +6,8 @@ All notable changes are documented here. The format follows
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-10-23
+
 ### Added
 
 - Seeding for contract tests. Generated suites include setup steps that create the test
@@ -26,9 +28,10 @@ All notable changes are documented here. The format follows
 - The generated `docker-compose.yml` names its service `virtual-service` instead of
   `wiremock` (containers are now `<project>-virtual-service-1`). The image, ports and
   the `chaos.py --wiremock` flag are unchanged.
-
 - Contract cases that delete something run last, so they don't remove records that
   other cases read.
+- The Docker image is built on Python 3.14 (was 3.12), and the GitHub Actions used by CI
+  and releases are updated (`checkout` 7, `upload-artifact` 7, `setup-buildx-action` 4).
 
 ## [0.1.2] - 2026-10-15
 
@@ -97,7 +100,8 @@ First public release of `api-shakedown` and `agentpanel`.
 - `agentpanel`: the reusable multi-agent core (workflow, LLM agents, structured output,
   provider factory, test helpers), published as its own package.
 
-[Unreleased]: https://github.com/anzar-ahsan-commits/api-shakedown/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/anzar-ahsan-commits/api-shakedown/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/anzar-ahsan-commits/api-shakedown/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/anzar-ahsan-commits/api-shakedown/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/anzar-ahsan-commits/api-shakedown/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/anzar-ahsan-commits/api-shakedown/releases/tag/v0.1.0
