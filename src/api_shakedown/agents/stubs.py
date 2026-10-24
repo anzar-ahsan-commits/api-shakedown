@@ -14,7 +14,7 @@ from agentpanel.llm_agents import render_feedback
 from langchain_core.language_models import BaseChatModel
 from pydantic import BaseModel, Field
 
-from api_shakedown.agents._common import generate_checked
+from api_shakedown.agents._common import Progress, batches, generate_checked
 from api_shakedown.spec import ApiSpec, Operation, chunk_operations
 from api_shakedown.spec.chunking import DEFAULT_MAX_CHARS
 from api_shakedown.spec.models import Response
@@ -61,6 +61,7 @@ class StubAgent:
     kind: str = "WireMock stub mappings"
     max_chars: int = DEFAULT_MAX_CHARS
     max_attempts: int = 3
+    progress: Progress | None = None
 
     async def produce(self, ctx: AgentContext) -> StubSet:
         spec: ApiSpec = ctx.inputs["spec"]
@@ -69,12 +70,15 @@ class StubAgent:
         notes: list[str] = []
         if self.model is not None:
             feedback = ctx.feedback_for(self.name)
-            for chunk in chunk_operations(spec.operations, self.max_chars):
-                expected = _needs_llm(chunk, dataset)
-                if expected:
-                    contents |= await self._generate(
-                        self.model, spec, chunk, expected, render_feedback(feedback), notes
-                    )
+            work = [
+                (chunk, expected)
+                for chunk in chunk_operations(spec.operations, self.max_chars)
+                if (expected := _needs_llm(chunk, dataset))
+            ]
+            for chunk, expected in batches(work, self.name, self.progress):
+                contents |= await self._generate(
+                    self.model, spec, chunk, expected, render_feedback(feedback), notes
+                )
             notes += [
                 f"{op.id} {response.status}: used a schema-generated sample body."
                 for op, response in expected_responses(spec.operations)

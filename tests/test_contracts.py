@@ -241,3 +241,21 @@ def test_suite_files(spec: ApiSpec) -> None:
     assert set(files) == {RUNNER_FILE, CASES_FILE, "shakedown_support.py"}
     compile(files[RUNNER_FILE], RUNNER_FILE, "exec")
     assert json.loads(files[CASES_FILE])["status_header"] == STATUS_HEADER
+
+
+def test_agent_reports_progress_per_batch(spec: ApiSpec) -> None:
+    messages: list[str] = []
+    model = ScriptedChatModel(respond=lambda _: reply([]))
+    agent = ContractTestAgent(model=model, max_chars=1, progress=messages.append)  # 1 op/batch
+    produce(agent, context(spec))
+    total = len(spec.operations)
+    assert len(messages) == total  # one line per batch, retries included in it
+    assert messages[0].startswith(f"  contracts: batch 1/{total} done (")
+    assert messages[-1].startswith(f"  contracts: batch {total}/{total} done (")
+
+
+def test_single_batch_is_quiet(spec: ApiSpec) -> None:
+    messages: list[str] = []
+    model = ScriptedChatModel(replies=[reply(GOOD_CASES)])
+    produce(ContractTestAgent(model=model, progress=messages.append), context(spec))
+    assert messages == []

@@ -11,6 +11,7 @@ from agentpanel import AgentContext, Review, Workflow
 from agentpanel.llm import create_chat_model
 from langchain_core.language_models import BaseChatModel
 
+from api_shakedown.agents._common import Progress
 from api_shakedown.agents.chaos import ChaosAgent
 from api_shakedown.agents.contracts import ContractTestAgent
 from api_shakedown.agents.coordinator import Harness, HarnessCoordinator
@@ -21,7 +22,6 @@ from api_shakedown.config import ShakedownSettings
 from api_shakedown.spec import ApiSpec
 from api_shakedown.testdata import Dataset
 
-Progress = Callable[[str], None]
 ModelFactory = Callable[[str], BaseChatModel | None]
 
 
@@ -55,15 +55,15 @@ async def generate_harness(
     say("Generating test data...")
     base = AgentContext(inputs={"spec": spec}, artifacts={}, reviews=[], round=0)
     dataset = await DatasetAgent(
-        model=model("testdata"), records_per_entity=options.records_per_entity
+        model=model("testdata"), records_per_entity=options.records_per_entity, progress=say
     ).produce(base)
     say(f"Test data ready ({_dataset_summary(dataset)}).")
 
     reviewer = model("reviewer") if options.review else None
     workflow = Workflow(
         specialists=[
-            StubAgent(model=model("stubs")),
-            ContractTestAgent(model=model("contracts")),
+            StubAgent(model=model("stubs"), progress=say),
+            ContractTestAgent(model=model("contracts"), progress=say),
             ChaosAgent(model=model("chaos")),
         ],
         reviewers=[ArtifactReviewer(reviewer)] if reviewer is not None else [],

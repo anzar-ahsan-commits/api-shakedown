@@ -127,9 +127,10 @@ def _final_reviews(reviews: Sequence[Review]) -> list[Review]:
 
 def _compose() -> str:
     return f"""\
-# WireMock serving the generated stubs. Port: SHAKEDOWN_WIREMOCK_PORT (default 8080).
+# The virtual service: WireMock serving the generated stubs.
+# Port: SHAKEDOWN_WIREMOCK_PORT (default 8080).
 services:
-  wiremock:
+  virtual-service:
     image: {WIREMOCK_IMAGE}
     ports:
       - "${{SHAKEDOWN_WIREMOCK_PORT:-8080}}:8080"

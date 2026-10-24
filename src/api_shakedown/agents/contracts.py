@@ -13,7 +13,7 @@ from agentpanel.llm_agents import render_feedback
 from langchain_core.language_models import BaseChatModel
 from pydantic import BaseModel
 
-from api_shakedown.agents._common import generate_checked
+from api_shakedown.agents._common import Progress, batches, generate_checked
 from api_shakedown.contracts import (
     CaseProposal,
     ContractSuite,
@@ -58,6 +58,7 @@ class ContractTestAgent:
     kind: str = "contract test suite"
     max_chars: int = DEFAULT_MAX_CHARS
     max_attempts: int = 3
+    progress: Progress | None = None
 
     async def produce(self, ctx: AgentContext) -> ContractSuite:
         spec: ApiSpec = ctx.inputs["spec"]
@@ -66,7 +67,8 @@ class ContractTestAgent:
         proposals: list[CaseProposal] = []
         if self.model is not None:
             feedback = render_feedback(ctx.feedback_for(self.name))
-            for chunk in chunk_operations(spec.operations, self.max_chars):
+            chunks = chunk_operations(spec.operations, self.max_chars)
+            for chunk in batches(chunks, self.name, self.progress):
                 proposals += await self._generate(self.model, spec, dataset, chunk, feedback, notes)
         cases = _with_happy_paths(spec, dataset, proposals, notes, self.model)
         suite = build_suite(spec, cases, notes)

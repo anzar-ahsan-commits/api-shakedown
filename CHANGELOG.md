@@ -18,8 +18,14 @@ All notable changes are documented here. The format follows
   contract cases green; the rest are refused by server rules the spec doesn't state.
 - Generation notes explain resources that can't be seeded, for example when the server
   assigns the id.
+- Progress per LLM batch on large specs, e.g. `contracts: batch 3/23 done (14m 5s)`, for
+  test data, stubs and contract tests. A single batch stays quiet.
 
 ### Changed
+
+- The generated `docker-compose.yml` names its service `virtual-service` instead of
+  `wiremock` (containers are now `<project>-virtual-service-1`). The image, ports and
+  the `chaos.py --wiremock` flag are unchanged.
 
 - Contract cases that delete something run last, so they don't remove records that
   other cases read.

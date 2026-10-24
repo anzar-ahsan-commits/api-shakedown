@@ -15,7 +15,7 @@ from agentpanel.llm_agents import render_feedback
 from langchain_core.language_models import BaseChatModel
 from pydantic import BaseModel, Field
 
-from api_shakedown.agents._common import generate_checked
+from api_shakedown.agents._common import Progress, batches, generate_checked
 from api_shakedown.spec import ApiSpec
 from api_shakedown.spec.chunking import DEFAULT_MAX_CHARS
 from api_shakedown.testdata import (
@@ -59,6 +59,7 @@ class DatasetAgent:
     records_per_entity: int = DEFAULT_RECORDS
     max_chars: int = DEFAULT_MAX_CHARS
     max_attempts: int = 3
+    progress: Progress | None = None
 
     async def produce(self, ctx: AgentContext) -> Dataset:
         spec: ApiSpec = ctx.inputs["spec"]
@@ -67,7 +68,7 @@ class DatasetAgent:
         if self.model is not None and entities:
             feedback = render_feedback(ctx.feedback_for(self.name))
             chosen = _worth_generating(list(entities.values()), self.max_chars, notes)
-            for group in _groups(chosen, self.max_chars):
+            for group in batches(_groups(chosen, self.max_chars), self.name, self.progress):
                 await self._generate(self.model, spec, group, feedback, notes)
             notes += [
                 f"{e.name}: used deterministic sample records." for e in chosen if not e.records
